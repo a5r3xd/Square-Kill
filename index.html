@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Square Kill</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Squares with Collision &amp; Rarity</title>
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden; background: #111;
@@ -93,7 +94,7 @@
 </style>
 </head>
 <body>
-<div id="coin-counter">Coins: 0</div>
+<div id="upgrade-dmg" style="position: absolute; top: 30px; left: 10px; background: #333; color: white; padding: 6px 10px; font-family: Arial, sans-serif; font-size: 13px; border-radius: 5px; cursor: pointer; user-select: none; z-index: 1000;">Upgrade Damage (Cost: 10)</div><div id="coin-counter">Coins: 0</div>
 <script>
 (() => {
   const squares = [];
@@ -101,6 +102,8 @@
   const baseSize = 25;
   const baseHp = 25;
   let coinCount = 0;
+let damage = 1;
+let upgradeCost = 10;
 
   function getRandomPosition(size) {
     const x = Math.random() * (window.innerWidth - size);
@@ -159,6 +162,28 @@
     collect() {
       coinCount += this.value;
       updateCoinDisplay();
+
+
+
+
+function updateUpgradeText() {
+  document.getElementById("upgrade-dmg").textContent =
+    `Upgrade Damage (Cost: ${Math.ceil(upgradeCost)})`;
+}
+
+document.getElementById("upgrade-dmg").addEventListener("click", () => {
+  if (coinCount >= upgradeCost) {
+    coinCount -= upgradeCost;
+    damage += 1;
+    upgradeCost *= 1.5;
+    updateCoinDisplay();
+    updateUpgradeText();
+  }
+});
+
+updateUpgradeText();
+
+
       this.remove();
     }
 
@@ -227,7 +252,7 @@
       this.el.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.expanding) return;
-        this.hp -= 1;
+        this.hp -= damage;
         if (this.hp < 0) this.hp = 0;
         this.updateHpBar();
         if (this.hp <= 0) this.startDeathAnimation();
@@ -351,7 +376,7 @@
 
   setInterval(() => {
     squares.push(new Square());
-  }, 7500);
+  }, 1000);
 
   gameLoop();
 })();
