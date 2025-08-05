@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Squares with Collision & Rarity</title>
+<style>
+  body, html {
+    margin: 0; padding: 0; overflow: hidden; background: #111;
+    height: 100vh; width: 100vw;
+    position: relative;
+  }
+  .square {
+    position: absolute;
+    opacity: 1;
+    border-radius: 3px;
+    pointer-events: auto;
+    transform-origin: center;
+    user-select: none;
+  }
+  .common {
+    background-color: #acac10;
+    box-shadow: 0 0 6px 3px #7a7a0a;
+  }
+  .unusual {
+    background-color: #acac10;
+    box-shadow: 0 0 7.2px 3.6px #7a7a0a;
+  }
+  .rare {
+    background-color: #acac10;
+    box-shadow: 0 0 10px 5px #7a7a0a;
+  }
+  .hp-bar-bg {
+    position: absolute;
+    width: 27px;
+    height: 4px;
+    background-color: #444;
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .hp-bar-fill {
+    position: absolute;
+    height: 100%;
+    background-color: #4caf50;
+    border-radius: 2px;
+    pointer-events: none;
+    transition: width 0.1s linear;
+  }
+  .rarity-label {
+    position: absolute;
+    font-size: 9px;
+    font-family: Arial, sans-serif;
+    user-select: none;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .rarity-common {
+    color: #a4dbaa;
+  }
+  .rarity-unusual {
+    color: #d9d94d;
+  }
+  .rarity-rare {
+    color: #aad4ff;
+  }
+  .coin {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #ffeb3b;
+    border: 2px solid #d4af37;
+    border-radius: 50%;
+    pointer-events: auto;
+  }
+  .silver-coin {
+    width: 20px;
+    height: 20px;
+    background-color: #ccc;
+    border: 2px solid #999;
+    border-radius: 50%;
+    pointer-events: auto;
+    position: absolute;
+  }
+  #coin-counter {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: white;
+    z-index: 1000;
+  }
+</style>
+</head>
+<body>
+<div id="coin-counter">Coins: 0</div>
+<script>
+(() => {
+  const squares = [];
+  const coins = [];
+  const baseSize = 25;
+  const baseHp = 25;
+  let coinCount = 0;
+
+  function getRandomPosition(size) {
+    const x = Math.random() * (window.innerWidth - size);
+    const y = Math.random() * (window.innerHeight - size - 20);
+    return { x, y };
+  }
+
+  function updateCoinDisplay() {
+    document.getElementById("coin-counter").textContent = "Coins: " + coinCount;
+  }
+
+  class Coin {
+    constructor(x, y, value = 1, isSilver = false) {
+      this.value = value;
+      this.size = isSilver ? 20 : 10;
+      this.x = x;
+      this.y = y;
+      this.vx = 0;
+      this.vy = 0;
+
+      this.el = document.createElement("div");
+      this.el.className = isSilver ? "silver-coin" : "coin";
+      this.el.style.left = this.x + "px";
+      this.el.style.top = this.y + "px";
+
+      this.el.addEventListener("mouseenter", () => {
+        this.collect();
+      });
+
+      document.body.appendChild(this.el);
+    }
+
+    update() {
+      for (const other of coins) {
+        if (other === this) continue;
+        const dx = (this.x + this.size/2) - (other.x + other.size/2);
+        const dy = (this.y + this.size/2) - (other.y + other.size/2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const minDist = (this.size + other.size) / 2;
+        if (dist < minDist && dist > 0) {
+          const overlap = minDist - dist;
+          const pushX = (dx / dist) * overlap * 0.5;
+          const pushY = (dy / dist) * overlap * 0.5;
+
+          this.x += pushX;
+          this.y += pushY;
+          other.x -= pushX;
+          other.y -= pushY;
+        }
+      }
+
+      this.el.style.left = this.x + "px";
+      this.el.style.top = this.y + "px";
+    }
+
+    collect() {
+      coinCount += this.value;
+      updateCoinDisplay();
+      this.remove();
+    }
+
+    remove() {
+      this.el.remove();
+    }
+  }
+
+  class Square {
+    constructor() {
+      this.isUnusual = (Math.random() < 0.2);
+      this.isRare = false;
+      if (this.isUnusual && Math.random() < 0.2) {
+        this.isRare = true;
+      }
+
+      this.rarity = this.isRare ? "Rare" : this.isUnusual ? "Unusual" : "Common";
+
+      this.baseSize = baseSize;
+      if (this.isRare) {
+        this.size = baseSize * 1.7;
+        this.maxHp = baseHp * 3.4 * 4;
+      } else if (this.isUnusual) {
+        this.size = baseSize * 1.2;
+        this.maxHp = baseHp * 3.4;
+      } else {
+        this.size = baseSize;
+        this.maxHp = baseHp;
+      }
+      this.hp = this.maxHp;
+
+      this.el = document.createElement('div');
+      this.el.className = 'square ' + (this.isRare ? 'rare' : this.isUnusual ? 'unusual' : 'common');
+      this.el.style.width = this.size + 'px';
+      this.el.style.height = this.size + 'px';
+
+      this.hpBarBg = document.createElement('div');
+      this.hpBarBg.className = 'hp-bar-bg';
+      this.hpBarBg.style.width = (this.size + 2) + 'px';
+
+      this.hpBarFill = document.createElement('div');
+      this.hpBarFill.className = 'hp-bar-fill';
+      this.hpBarBg.appendChild(this.hpBarFill);
+
+      this.rarityLabel = document.createElement('div');
+      this.rarityLabel.className = 'rarity-label ' +
+        (this.isRare ? 'rarity-rare' : this.isUnusual ? 'rarity-unusual' : 'rarity-common');
+      this.rarityLabel.textContent = this.rarity;
+
+      const pos = getRandomPosition(this.size);
+      this.x = pos.x;
+      this.y = pos.y;
+
+      const angle = Math.random() * 2 * Math.PI;
+      this.vx = Math.cos(angle) * 0.5;
+      this.vy = Math.sin(angle) * 0.5;
+
+      this.rotation = 0;
+      this.rotationSpeed = 0.5;
+
+      this.expanding = false;
+      this.opacity = 1;
+
+      this.updateStyle();
+
+      this.el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.expanding) return;
+        this.hp -= 1;
+        if (this.hp < 0) this.hp = 0;
+        this.updateHpBar();
+        if (this.hp <= 0) this.startDeathAnimation();
+      });
+
+      document.body.appendChild(this.el);
+      document.body.appendChild(this.hpBarBg);
+      document.body.appendChild(this.rarityLabel);
+
+      this.updateHpBar();
+    }
+
+    updateStyle() {
+      this.el.style.transform = `translate(${this.x}px, ${this.y}px) rotate(${this.rotation}deg) scale(1)`;
+      this.el.style.opacity = this.opacity;
+
+      this.hpBarBg.style.left = (this.x + this.size / 2 - (this.size + 2) / 2) + 'px';
+      this.hpBarBg.style.top = (this.y + this.size + 2) + 'px';
+      this.hpBarBg.style.opacity = this.opacity;
+
+      this.rarityLabel.style.left = (this.x + this.size / 2 - this.rarityLabel.offsetWidth / 2) + 'px';
+      this.rarityLabel.style.top = (this.y + this.size + 8) + 'px';
+      this.rarityLabel.style.opacity = this.opacity;
+    }
+
+    updateHpBar() {
+      const ratio = this.hp / this.maxHp;
+      this.hpBarFill.style.width = ((this.size + 2) * ratio) + 'px';
+    }
+
+    startDeathAnimation() {
+      this.expanding = true;
+
+      if (this.isRare) {
+        const cx = this.x + this.size / 2 - 10;
+        const cy = this.y + this.size / 2 - 10;
+        const coin = new Coin(cx, cy, 25, true);
+        coins.push(coin);
+      } else {
+        const coinCount = this.isUnusual ? 5 : 1;
+        for (let i = 0; i < coinCount; i++) {
+          const angle = Math.random() * 2 * Math.PI;
+          const radius = Math.random() * this.size * 0.3;
+          const cx = this.x + this.size / 2 + Math.cos(angle) * radius - 5;
+          const cy = this.y + this.size / 2 + Math.sin(angle) * radius - 5;
+          const coin = new Coin(cx, cy);
+          coins.push(coin);
+        }
+      }
+    }
+
+    update() {
+      if (!this.expanding) {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.rotation += this.rotationSpeed;
+        if (this.rotation >= 360) this.rotation -= 360;
+
+        if (this.x <= 0) this.vx = Math.abs(this.vx);
+        if (this.x >= window.innerWidth - this.size) this.vx = -Math.abs(this.vx);
+        if (this.y <= 0) this.vy = Math.abs(this.vy);
+        if (this.y >= window.innerHeight - this.size - 20) this.vy = -Math.abs(this.vy);
+
+        for (const other of squares) {
+          if (other === this || other.expanding) continue;
+          const dx = (this.x + this.size/2) - (other.x + other.size/2);
+          const dy = (this.y + this.size/2) - (other.y + other.size/2);
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          const minDist = (this.size + other.size)/2;
+          if (dist < minDist && dist > 0) {
+            const overlap = minDist - dist;
+            const pushX = (dx / dist) * overlap * 0.5;
+            const pushY = (dy / dist) * overlap * 0.5;
+
+            this.x += pushX;
+            this.y += pushY;
+            other.x -= pushX;
+            other.y -= pushY;
+
+            this.vx *= 0.9;
+            this.vy *= 0.9;
+            other.vx *= 0.9;
+            other.vy *= 0.9;
+          }
+        }
+      } else {
+        this.size += this.size * 0.02;
+        this.opacity -= 0.1;
+
+        if (this.opacity <= 0) {
+          this.remove();
+          return false;
+        }
+        this.el.style.width = this.size + 'px';
+        this.el.style.height = this.size + 'px';
+        this.hpBarBg.style.width = (this.size + 2) + 'px';
+      }
+
+      this.updateStyle();
+      return true;
+    }
+
+    remove() {
+      this.el.remove();
+      this.hpBarBg.remove();
+      this.rarityLabel.remove();
+    }
+  }
+
+  function gameLoop() {
+    for (let i = squares.length - 1; i >= 0; i--) {
+      const alive = squares[i].update();
+      if (!alive) squares.splice(i, 1);
+    }
+    for (let i = coins.length - 1; i >= 0; i--) {
+      coins[i].update();
+    }
+    requestAnimationFrame(gameLoop);
+  }
+
+  setInterval(() => {
+    squares.push(new Square());
+  }, 1000);
+
+  gameLoop();
+})();
+</script>
+</body>
+</html>
