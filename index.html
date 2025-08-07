@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Squares with Collision &amp; Rarity</title>
+<title>Square Kill</title>
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden; background: #111;
@@ -30,6 +30,10 @@
   .rare {
     background-color: #acac10;
     box-shadow: 0 0 10px 5px #7a7a0a;
+  }
+  .epic {
+    background-color: #acac10;
+    box-shadow: 0 0 12px 6px #7a7a0a;
   }
   .hp-bar-bg {
     position: absolute;
@@ -64,6 +68,9 @@
   .rarity-rare {
     color: #aad4ff;
   }
+  .rarity-epic {
+    color: #ff8fff;
+  }
   .coin {
     position: absolute;
     width: 10px;
@@ -90,14 +97,6 @@
     font-size: 14px;
     color: white;
     z-index: 1000;
-  }
-
-  .epic {
-    background-color: #9110ac;
-    box-shadow: 0 0 12px 6px #7a0a7a;
-  }
-  .rarity-epic {
-    color: #ff8fff;
   }
 
 </style>
@@ -401,7 +400,7 @@ updateUpgradeText();
 
   setInterval(() => {
     squares.push(new Square());
-  }, 1000);
+  }, 7500);
 
   gameLoop();
 })();
