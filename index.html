@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
-<title>Square Kill</title>
+<title>Squares with Collision &amp; Rarity</title>
 <style>
   body, html {
     margin: 0; padding: 0; overflow: hidden; background: #111;
@@ -91,6 +91,15 @@
     color: white;
     z-index: 1000;
   }
+
+  .epic {
+    background-color: #9110ac;
+    box-shadow: 0 0 12px 6px #7a0a7a;
+  }
+  .rarity-epic {
+    color: #ff8fff;
+  }
+
 </style>
 </head>
 <body>
@@ -194,16 +203,25 @@ updateUpgradeText();
 
   class Square {
     constructor() {
-      this.isUnusual = (Math.random() < 0.2);
+      this.isUnusual = Math.random() < 0.2;
       this.isRare = false;
+      this.isEpic = false;
+
       if (this.isUnusual && Math.random() < 0.2) {
         this.isRare = true;
+        if (Math.random() < 0.1) {
+          this.isEpic = true;
+          this.isRare = false;
+        }
       }
 
-      this.rarity = this.isRare ? "Rare" : this.isUnusual ? "Unusual" : "Common";
+      this.rarity = this.isEpic ? "Epic" : this.isRare ? "Rare" : this.isUnusual ? "Unusual" : "Common";
 
       this.baseSize = baseSize;
-      if (this.isRare) {
+      if (this.isEpic) {
+        this.size = baseSize * 2.5;
+        this.maxHp = baseHp * 3.4 * 4 * 4;
+      } else if (this.isRare) {
         this.size = baseSize * 1.7;
         this.maxHp = baseHp * 3.4 * 4;
       } else if (this.isUnusual) {
@@ -216,7 +234,7 @@ updateUpgradeText();
       this.hp = this.maxHp;
 
       this.el = document.createElement('div');
-      this.el.className = 'square ' + (this.isRare ? 'rare' : this.isUnusual ? 'unusual' : 'common');
+      this.el.className = 'square ' + (this.isEpic ? 'epic' : this.isRare ? 'rare' : this.isUnusual ? 'unusual' : 'common');
       this.el.style.width = this.size + 'px';
       this.el.style.height = this.size + 'px';
 
@@ -230,7 +248,7 @@ updateUpgradeText();
 
       this.rarityLabel = document.createElement('div');
       this.rarityLabel.className = 'rarity-label ' +
-        (this.isRare ? 'rarity-rare' : this.isUnusual ? 'rarity-unusual' : 'rarity-common');
+        (this.isEpic ? 'rarity-epic' : this.isRare ? 'rarity-rare' : this.isUnusual ? 'rarity-unusual' : 'rarity-common');
       this.rarityLabel.textContent = this.rarity;
 
       const pos = getRandomPosition(this.size);
@@ -286,7 +304,14 @@ updateUpgradeText();
     startDeathAnimation() {
       this.expanding = true;
 
-      if (this.isRare) {
+      if (this.isEpic) {
+        for (let i = 0; i < 4; i++) {
+          const cx = this.x + this.size / 2 - 10 + Math.random() * 10 - 5;
+          const cy = this.y + this.size / 2 - 10 + Math.random() * 10 - 5;
+          const coin = new Coin(cx, cy, 25, true);
+          coins.push(coin);
+        }
+      } else if (this.isRare) {
         const cx = this.x + this.size / 2 - 10;
         const cy = this.y + this.size / 2 - 10;
         const coin = new Coin(cx, cy, 25, true);
@@ -376,7 +401,7 @@ updateUpgradeText();
 
   setInterval(() => {
     squares.push(new Square());
-  }, 7500);
+  }, 1000);
 
   gameLoop();
 })();
